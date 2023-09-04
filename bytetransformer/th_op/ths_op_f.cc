@@ -82,6 +82,9 @@ Tensor TransformerEncoder(int64_t head_num, int64_t head_size, Tensor qkv_kernel
   return output;
 }
 
+// note: torch's comment describe torch::RegisterOperators as "old style api"
+// note: maybe just another entrance, similar to torch::jit::class_
+
 static auto registry = torch::RegisterOperators(
     "ByteTransformer::BertTransformer("
     "int head_num, int head_size,"

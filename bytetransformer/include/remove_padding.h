@@ -36,6 +36,9 @@ __inline__ __device__ T warpPrefixSum(int id, T count) {
 template <typename T>
 __global__ void parallel_prefix(const T *atten_mask, int *batch_idx, int *word_idx,
                                 const int batch_size, const int max_seq_len) {
+
+  // note: only one grid
+
   const int tid = threadIdx.x;
   const int warp_count = blockDim.x >> 5;
   int warp_id = tid >> 5;
@@ -43,13 +46,21 @@ __global__ void parallel_prefix(const T *atten_mask, int *batch_idx, int *word_i
 
   extern __shared__ int base[];
 
+  // note: size: batch_size
   int *seq_len = base;
+  // note: size: ???
   int *seq_offset = base + batch_size;
 
+  // note: wid denote the batch idx
   for (int wid = warp_id; wid < batch_size; wid += warp_count) {
     int count = 0;
+    // note: deal with the tokens whose id = warp_tid + n * 32
     for (int i = warp_tid; i < (max_seq_len + 31) / 32 * 32; i += 32) {
       T mask = i < max_seq_len ? atten_mask[wid * max_seq_len * max_seq_len + i] : (T)0.0f;
+      // note: __ballot_sync is warp level
+      // note: 0xFFFFFFFF denote no thread in current warp is blocked
+      // note: __ballot_sync(0xFFFFFFFF, mask >= (T)0.5f) will returen the one hot value about wheather mask is 1
+      // note: __popc() calculate how many 1s in 32 bits
       count += __popc(__ballot_sync(0xFFFFFFFF, mask >= (T)0.5f));
     }
     if (warp_tid == 0)
@@ -94,8 +105,12 @@ void build_sequence_length_padding_offset_kernelLauncher(const T *atten_mask, in
   dim3 block(batch_size * 32);  // one warp per sequence
   if (block.x > 1024)
     block.x = 1024;
+
+  // note: only one grid
   parallel_prefix<<<1, block, (2 * batch_size + 1) * sizeof(int), stream>>>(
       atten_mask, batch_idx, word_idx, batch_size, max_seq_len);
+
+  // note: copy one int, set valid_word_num
   cudaMemcpyAsync(valid_word_num, batch_idx + batch_size, sizeof(int), cudaMemcpyDeviceToHost,
                   stream);
 }

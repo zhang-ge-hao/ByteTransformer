@@ -167,6 +167,8 @@ class BertTransformer {
       use_cutlass = true;
     }
 
+    // note: init the attention layer, and it looks like this constructor only did this
+
     if (use_cutlass) {
       if constexpr (OpType == OperationType::HALF) {
         attention_layer_ =

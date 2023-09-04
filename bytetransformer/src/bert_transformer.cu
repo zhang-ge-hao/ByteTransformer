@@ -27,6 +27,9 @@ namespace bytetransformer {
 template <OperationType OpType>
 void BertTransformer<OpType>::bert_infer(
     BertTransformerInferParam infer_param) {
+
+  // note: get params
+
   const DataType_* from_tensor = infer_param.input_tensor;
   const DataType_* atten_mask = infer_param.atten_mask;
   DataType_* transformer_out = infer_param.transformer_output;
@@ -41,9 +44,16 @@ void BertTransformer<OpType>::bert_infer(
   DataType_* attention_buf = (DataType_*)((uint8_t*)buf + inner_buf_size_);
   DataType_* inner_buf = (DataType_*)buf;
 
+  // note: size: 3 * batch_size * head_num_ * seq_len * size_per_head_
   DataType_* qkv_buf = inner_buf + 0 * input_tensor_size;
+
+  // note: size: batch_size * head_num_ * seq_len * size_per_head_
   DataType_* attr_out_buf = inner_buf + 3 * input_tensor_size;
+
+  // note: size: batch_size * head_num_ * seq_len * size_per_head_
   DataType_* attr_matmul_buf = inner_buf + 4 * input_tensor_size;
+
+  // note: size: batch_size * head_num_ * seq_len * size_per_head_
   DataType_* inter_matmul_buf = inner_buf + 5 * input_tensor_size;
 
   int valid_word_num = batch_size * seq_len;
@@ -55,16 +65,24 @@ void BertTransformer<OpType>::bert_infer(
 
   ET_Param et_param;
   if (is_remove_padding_) {
+
+    // note: intermediate_size = 4;
+    // note: size: batch_size * seq_len
     et_param.word_idx =
         (int*)(inter_matmul_buf + param_.intermediate_size * input_tensor_size);
+
+    // note: size: ???
     et_param.batch_idx = et_param.word_idx + batch_size * seq_len;
 
+    // note: build_sequence_length_padding_offset_kernel
+    // note: valid_word_num modified
     build_sequence_length_padding_offset_kernelLauncher(
         atten_mask, et_param.batch_idx, et_param.word_idx, &valid_word_num,
         batch_size, seq_len, stream);
 
     et_param.valid_word_num = valid_word_num;
 
+    // note: compressBertInput_kernel
     compressBertInput_kernelLauncher(
         from_tensor, transformer_out, et_param.batch_idx, et_param.word_idx,
         valid_word_num, batch_size, hidden_dim, stream);

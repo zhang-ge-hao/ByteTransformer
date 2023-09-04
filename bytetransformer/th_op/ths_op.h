@@ -26,6 +26,8 @@ namespace bytetransformer {
 namespace torch_ths {
 using torch::Tensor;
 
+// note: torch jit class
+
 class BertTransformer : public torch::jit::CustomClassHolder {
  public:
   BertTransformer(int64_t head_num, int64_t head_size, Tensor qkv_kernel, Tensor qkv_bias,
@@ -104,6 +106,9 @@ class BertTransformer : public torch::jit::CustomClassHolder {
 
  private:
   const at::ScalarType _st;
+
+  // note: torch_ext::IBTEncoder is main class with forward
+
   torch_ext::IBTEncoder *btencoder;
   Tensor head_info;
   std::vector<Tensor> weights;

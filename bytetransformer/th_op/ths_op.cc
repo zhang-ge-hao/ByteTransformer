@@ -24,6 +24,8 @@ namespace bytetransformer {
 namespace torch_ths {
 using torch::Tensor;
 
+// note: torch jit entrance
+
 static auto bertTransformerEncoderTHS =
     torch::jit::class_<BertTransformer>("ByteTransformer", "BertTransformer")
         .def(torch::jit::init<int64_t, int64_t, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor,

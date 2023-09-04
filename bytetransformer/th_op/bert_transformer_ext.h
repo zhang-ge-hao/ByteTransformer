@@ -61,6 +61,9 @@ class BTEncoder : public IBTEncoder {
       if (_weights[10].scalar_type() == at::ScalarType::Float) {
         _use_fp32 = true;
       }
+
+      // note: encoder_param.cublas_Algo ==> int[3]
+
       encoder_param.cublas_Algo[0] = -1 == algo_attr_linear ? 99 : algo_attr_linear;
       encoder_param.cublas_Algo[1] = -1 == algo_ffn_inter ? 99 : algo_ffn_inter;
       encoder_param.cublas_Algo[2] = -1 == algo_ffn_output ? 99 : algo_ffn_output;
@@ -72,6 +75,9 @@ class BTEncoder : public IBTEncoder {
       encoder_param.cublas_Algo[0] = algo_attr_linear;
       encoder_param.cublas_Algo[1] = algo_ffn_inter;
       encoder_param.cublas_Algo[2] = algo_ffn_output;
+
+      // note: encoder_param.attention_param.cublas_Algo ==> int[2]
+
       encoder_param.attention_param.cublas_Algo[0] = algo_attr_bgemm1;
       encoder_param.attention_param.cublas_Algo[1] = algo_attr_bgemm2;
     }
@@ -82,6 +88,8 @@ class BTEncoder : public IBTEncoder {
                const ModelType model_type = ModelType::Bert,
                const Tensor attention_bias = Tensor()) override {
     CHECK_SEQ_LEN(seq_len)
+
+    // note: init a disposable BertTransformer obj, similar to F
 
     BertTransformer<THTraits<T>::OpType> *encoder = new BertTransformer<THTraits<T>::OpType>(
         batch_size, _head_num, _head_size, seq_len, use_fused_attention, is_remove_padding,
